@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:gatt/gatt.dart';
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -11,8 +13,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
+BluetoothCharacteristic? characteristic;
 bool bluetoothIsAvaiblade = false;
 bool bluetoothIsOn = false;
+
 
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -27,7 +31,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 15),
               child: ElevatedButton(
-                onPressed: ScanBluetooth,
+                onPressed: scanBluetooth,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 53, 91, 216)),
                 child: const Text("Parear com meu dispositivo"),
@@ -38,32 +42,41 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
 
-  void ScanBluetooth() async {
-    //verificar se o device está conectado
-    var devices = await flutterBlue.connectedDevices;
-    BluetoothDevice? deviceConnected;
-    for (BluetoothDevice device in devices){
-      if(device.name != ""){
-        deviceConnected = device;
-        break;
+  void scanBluetooth() async {
+  // Procurar dispositivos Bluetooth conectados
+  List<BluetoothDevice> connectedDevices = await flutterBlue.connectedDevices;
+  // Verificar se o dispositivo desejado está conectado
+  for (BluetoothDevice device in connectedDevices) {
+  //verficar se é a amazfit 
+  if (device.name.trim() == "Amazfit Bip U Pro") {
+    if (device != null) {
+    //desconectar
+     await device.disconnect();
+    //conectar aos serviços gatt
+     await device.connect(autoConnect: true, timeout: const Duration(seconds: 1));
+    List<BluetoothService> services = await device.discoverServices();
+    //descobrir os serviços gatt oferecidos pela pulseira
+    for (BluetoothService service in services) { 
+       for (BluetoothCharacteristic characteristic in service.characteristics) {
+        print("-------------------------------------");
+          print(characteristic.deviceId);
+          print(characteristic.descriptors);
+          print(characteristic.uuid);
+          print(characteristic.serviceUuid);
+          print(characteristic.uuid);
+          print(GattId(0, "vbvbv00002a4d-0000-1000-8000-00805f9b34fb"));
+          
+          
       }
+     }
+    } else {
+    // O dispositivo não está conectado
+    print("O dispositivo não está conectado.");
     }
-    if(deviceConnected != null){
-      /*List<BluetoothService> services = await deviceConnected.discoverServices();
-      services.forEach((service) async{ 
-         List<BluetoothCharacteristic> characteristics = await service.characteristics;
-         print(characteristics.);
-      });*/
-
-      List<BluetoothService> services = await deviceConnected.discoverServices();
-      for (BluetoothService service in services) {
-      /*List<BluetoothCharacteristic> characteristics = service.characteristics;
-       print(characteristics);*/
-       print(service.includedServices);
-      }
-    }
-    
+    break;
+   }
   }
+ }
 }
 
 class CardPrincipal extends StatelessWidget {
