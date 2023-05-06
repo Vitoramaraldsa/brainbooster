@@ -21,44 +21,66 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  //instanciar o serviço
   final _amazfitService = AmazfitBipUProService();
+  //possivel dispositivo conectado
   DiscoveredDevice? _device;
-  int? _heartRate;
+  //valor capturado na caracteristica e servico
+  String? _valueCharacteristic;
 
+  //uuid servico e caracteristica
+  /*
   String? serviceIdstring;
   String? characteristicString;
-  int counter = 0;
+  */
 
-  List<String> heartRateCharacteristics = [
-    "00002a39-0000-1000-8000-00805f9b34fb",
-    ];
+  var unknownService = "0000fee0-0000-1000-8000-00805f9b34fb";
+  var unknownCharacteristics = [
+    "00002a2b-OOOO-1000-8000-00805f9b34fb",
+    "00002a04-0000-1000-8000-00805f9b34fb",
+    //----------------------------------------
+    //resultado foi 31
+    "00000006-0000-3512-2118-0009af100700",
+    //----------------------------------------
+    "00000007-0000-3512-2118-ooogaf100700"
+  ];
+
+  var counter = 0;
 
   @override
   void initState() {
     super.initState();
-    //escanear os dispositivos
-    _amazfitService.scanStream.listen((device) {
-      if (serviceIdstring != null && characteristicString != null) {
-        if (device.name == 'Amazfit Bip U Pro') {
-          setState(() {
+    //escanear os dispositivos ao iniciar a aplicacao
+    _amazfitService.scanStream.listen((device){
+      //ver se o dispositivo é a amazfit
+      if (device.name == 'Amazfit Bip U Pro') {
+        //instanciar o dispositivo
+        setState(
+          () {
             _device = device;
-          });
-          _amazfitService.discoverServices(device.id);
-          final connectionSubscription =
-              _amazfitService.connectToDevice(device.id);
-          final heartRateCharacteristic = QualifiedCharacteristic(
-              serviceId: Uuid.parse(serviceIdstring!),
-              characteristicId: Uuid.parse(characteristicString!),
-              deviceId: device.id);
+          },
+        );
+        //realizar a conexão
+        final connectionSubscription = _amazfitService.connectToDevice(device.id);
+        try {
+          //capturar o valor da caracteristica + service
+          final characteristicCapture = QualifiedCharacteristic(
+            serviceId: Uuid.parse(unknownService),
+            characteristicId: Uuid.parse(unknownCharacteristics[counter]),
+            deviceId: device.id,
+          );
+          //ler a caracteristica qualificada
           _amazfitService
-              .readHeartRate(device.id, heartRateCharacteristic)
-              .then((heartRate) {
-            setState(() {
-              _heartRate = heartRate;
-            });
+              .readCharacteristic(device.id, characteristicCapture)
+              .then((value) {
+               setState(() {
+                 _valueCharacteristic = value.toString();
+               });
           });
           // Cancele a conexão quando não for mais necessária.
           connectionSubscription.cancel();
+        } catch (error) {
+          print(error.toString());
         }
       }
     });
@@ -78,7 +100,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    characteristicString = heartRateCharacteristics[counter];
                     counter++;
                   });
                 },
@@ -86,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 80),
             Text('Device: ${_device?.name}'),
             const SizedBox(height: 10),
-            Text('RESULTADO DO UUID: ${_heartRate != null ? _heartRate.toString() : 'N/A'}'),
+            Text('RESULTADO DO UUID: $_valueCharacteristic'),
             // Adicione aqui os widgets para exibir outras informações, como notificações recebidas e nível de oxigênio do sangue.
           ],
         ),
